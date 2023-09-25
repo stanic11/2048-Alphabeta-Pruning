@@ -1,11 +1,11 @@
 import random
 import constant as c
 
-
+# TODO: 每次合并一个方块即停止循环
 # 已完成内容：
 # fst - 初始化矩阵储存各点数值
 # sec - 在矩阵内随机两点生成2与4中的随机数值
-# TODO: thd - 实现上下左右移动方块
+# thd - 实现上下左右移动方块
 # fourth - 每次移动后在空余位置生成一个方块
 
 
@@ -37,27 +37,57 @@ def isRowColSame(matrix, row, row__, col, col__):
 
 
 def left(matrix):
-    for i in range(c.COLUMN):
-        for j in range(c.ROW):
-            if matrix[i][j] != 0:
-                if j == 0:
-                    # At the fst grid in X
-                    continue
-                elif j == 1:
-                    if (matrix[i][j - 1] == matrix[i][j] and matrix[i][j] != 0) or matrix[i][j] == 0:
-                        matrix[i][j - 1] += matrix[i][j]
-                        matrix[i][j] = 0
-                elif j == 2:
-                    if matrix[i][j - 1] == matrix[i][j] or matrix[i][j] == 0:
-                        matrix[i][j - 1] += matrix[i][j]
-                        matrix[i][j] = 0
-                elif j == 3:
-                    continue
-                    #
-                    # TODO:优化方法，撰写四个函数，分别先将 j位上的数字移动到j-1位上，运行j-1位对应的函数递归下去.......
-                    #
-            else:
-                continue
+    # 矩阵左移操作
+    for j in range(c.COLUMN - 1, 0, -1):
+        for i in range(c.ROW):
+            if matrix[i][j] != 0 and j > 0:
+                if matrix[i][j - 1] == 0:
+                    matrix[i][j - 1] = matrix[i][j]
+                    matrix[i][j] = 0
+                elif matrix[i][j - 1] == matrix[i][j]:
+                    matrix[i][j - 1] *= 2
+                    matrix[i][j] = 0
+    createGrid(matrix)
+
+
+def right(matrix):
+    for j in range(0, c.COLUMN - 1):
+        for i in range(c.ROW):
+            if matrix[i][j] != 0 and j < c.COLUMN:
+                if matrix[i][j + 1] == 0:
+                    matrix[i][j + 1] = matrix[i][j]
+                    matrix[i][j] = 0
+                elif matrix[i][j + 1] == matrix[i][j]:
+                    matrix[i][j + 1] *= 2
+                    matrix[i][j] = 0
+    createGrid(matrix)
+
+
+def up(matrix):
+    # 进行 行变换
+    for i in range(c.ROW - 1, 0, -1):
+        for j in range(c.COLUMN):
+            if matrix[i][j] != 0 and i < c.ROW:
+                if matrix[i - 1][j] == 0:
+                    matrix[i - 1][j] = matrix[i][j]
+                    matrix[i][j] = 0
+                elif matrix[i - 1][j] == matrix[i][j]:
+                    matrix[i - 1][j] *= 2
+                    matrix[i][j] = 0
+    createGrid(matrix)
+
+
+def down(matrix):
+    for i in range(0, c.ROW - 1):
+        for j in range(c.COLUMN):
+            if matrix[i][j] != 0 and i < c.ROW:
+                if matrix[i + 1][j] == 0:
+                    matrix[i + 1][j] = matrix[i][j]
+                    matrix[i][j] = 0
+                elif matrix[i + 1][j] == matrix[i][j]:
+                    matrix[i + 1][j] *= 2
+                    matrix[i][j] = 0
+    createGrid(matrix)
 
 
 def createGrid(matrix):
@@ -76,4 +106,3 @@ def isWinner(matrix):
         for j in range(c.ROW):
             if matrix[i][j] == 2048:
                 return True
-
