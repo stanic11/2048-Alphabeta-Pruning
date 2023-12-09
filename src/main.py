@@ -1,14 +1,7 @@
-import printer
-import grid
-import Logic
+import Print
 
 # TODO:use Verdana font.
 
 if __name__ == '__main__':
-    print(logic.initGame())
-
-    """
-    app = printer.QApplication([])
-    window = printer.Window()
-    window.show()
-    app.exec()"""
+    draw = Print.Draw()
+    draw.start()
