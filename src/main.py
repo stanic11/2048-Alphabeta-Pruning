@@ -1,7 +1,6 @@
-import Print
-
-# TODO:use Verdana font.
+import game
 
 if __name__ == '__main__':
-    draw = Print.Draw()
-    draw.start()
+    myGame = game.game()
+    myGame.start()
+

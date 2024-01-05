@@ -1,22 +1,26 @@
 import math
-
 import Logic
 import constant as c
 
 
 class Ai:
-    def __init__(self):
-        self.GAME = Logic.game()
+    def __init__(self, game):
+        self.GAME = game
         self.alpha = -math.inf
         self.beta = +math.inf
-        self.headNode = Node(self.GAME.matrix, 1)
-        self.depth = 6
+        self.headNode = Node(self.GAME.matrix, 1, None)
+        # self.depth = 6
         #########################
         self.smoothWeight = 0.1
         self.emptyWeight = 2.7
         self.maxWeight = 1.0
         self.monoWeight = 1.0  # 单调性权重
         ##########################
+
+    def decide(self):
+        node, value = self.alphaBetaSearch(self.headNode, c.nodeDepth, True)
+        print("test")
+        return node.move
 
     def alphaBetaSearch(self, node, depth, minimaxPlayer):
         if depth == 0 or self.GAME.gameState() == 'win':
@@ -48,17 +52,15 @@ class Ai:
             return bestChild, minEval  # 返回最小值所对应的子节点和值
 
     def eval(self, matrix):
-        emptyCounts = math.fabs(self.getEmptyCounts(matrix))
-        if emptyCounts == 0:
+        emptyCounts = self.getEmptyCounts(matrix)
+        if emptyCounts != 0:
             return (self.getSmoothness(matrix) * self.smoothWeight +
                     self.getMonotonicity(matrix) * self.monoWeight +
+                    math.log(emptyCounts) * self.emptyWeight +
                     self.getMaxValue(matrix) * self.maxWeight)
-        return (self.getSmoothness(matrix) * self.smoothWeight +
-                self.getMonotonicity(matrix) * self.monoWeight +
-                math.log(emptyCounts) * self.emptyWeight +
-                self.getMaxValue(matrix) * self.maxWeight)
+        else:
+            return 0
 
-    # 暂不考虑
     def machineOperator(self, node):
         for child in node:
             valueList = []
@@ -77,107 +79,87 @@ class Ai:
             index = valueList.index(min(valueList))
             child.matrix = child.matrix.gridChange(matrixIndex[index][0], matrixIndex[index][1], matrixIndex[index][2])
 
-    @classmethod
-    def getSmoothness(cls, matrix):
+    def getSmoothness(self, matrix):
         # 计算每格平滑度
         smoothness = 0
         for i in range(c.ROW):
             for j in range(c.COLUMN):
                 if matrix[i][j] != 0:
                     value = math.log(matrix[i][j]) / math.log(2)
-                    # 该行处理
+                    # 行处理
                     tmpMatrix = matrix[i]
-
-        # 先对每一行进行单独求解
-        for i in range(c.ROW):
-            tmpMatrix = matrix[i]
-            for j in range(len(tmpMatrix) - 1):
-                if tmpMatrix[j] != 0:
-                    for k in range(j + 1, len(tmpMatrix)):
-                        if tmpMatrix[k] != 0:
-                            smoothness -= math.log(math.fabs(tmpMatrix[k] - tmpMatrix[j])) / math.log(2)
-                            break
-
-        # 对每一列求解
-        for j in range(c.COLUMN):
-            tmpMatrix = []
-            for i in range(c.ROW):
-                # 抽出矩阵的每一列
-                tmpMatrix.append(matrix[i][j])
-            for k in range(len(tmpMatrix) - 1):
-                if tmpMatrix[k] != 0:
-                    for t in range(k + 1, len(tmpMatrix)):
-                        if tmpMatrix[t] != 0:
-                            smoothness -= math.log(math.fabs(tmpMatrix[k] - tmpMatrix[t])) / math.log(2)
-                            break
+                    for k in range(len(tmpMatrix)):
+                        if tmpMatrix[k] != 0 and k != j:
+                            targetValue = math.log(tmpMatrix[k]) / math.log(2)
+                            smoothness -= math.fabs(value - targetValue)
+                        else:
+                            smoothness -= value
+                    # 列处理
+                    colMatrix = Logic.getColMatrix(matrix, j)
+                    for k in range(len(colMatrix)):
+                        if colMatrix[k] != 0 and k != i:
+                            targetValue = math.log(colMatrix[k]) / math.log(2)
+                            smoothness -= math.fabs(value - targetValue)
+                        else:
+                            smoothness -= value
         return smoothness
 
-    @classmethod
-    def getMonotonicity(cls, matrix):
+    def getMonotonicity(self, matrix):
         scoreList = [0, 0, 0, 0]
-        # Right
-        for i in range(c.ROW):
-            tmpMatrix = matrix[i]
-            for j in range(len(tmpMatrix) - 1):
-                if tmpMatrix[j] != 0:
-                    for k in range(j + 1, len(tmpMatrix)):
-                        if tmpMatrix[k] != 0:
-                            if tmpMatrix[j] >= tmpMatrix[k]:
-                                scoreList[0] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[j]) / math.log(2)
-                            else:
-                                scoreList[1] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[j]) / math.log(2)
-        # Left
-        for i in range(c.ROW):
-            tmpMatrix = matrix[i]
-            for j in range(len(tmpMatrix) - 1, 0, -1):
-                if tmpMatrix[j] != 0:
-                    for k in range(j - 1, len(tmpMatrix), -1):
-                        if tmpMatrix[k] != 0:
-                            if tmpMatrix[j] >= tmpMatrix[k]:
-                                scoreList[0] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[j]) / math.log(2)
-                            else:
-                                scoreList[1] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[j]) / math.log(2)
 
-        # Up
-        for j in range(c.COLUMN):
-            tmpMatrix = []
-            for i in range(c.ROW):
-                # 抽出矩阵的每一列
-                tmpMatrix.append(matrix[i][j])
-            for k in range(len(tmpMatrix) - 1):
-                if tmpMatrix[k] != 0:
-                    for t in range(k + 1, len(tmpMatrix)):
-                        if tmpMatrix[t] != 0:
-                            if tmpMatrix[k] >= tmpMatrix[t]:
-                                scoreList[2] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[t]) / math.log(2)
-                            else:
-                                scoreList[3] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[t]) / math.log(2)
-        # Down
-        for j in range(c.COLUMN):
-            tmpMatrix = []
-            for i in range(c.ROW):
-                # 抽出矩阵的每一列
-                tmpMatrix.append(matrix[i][j])
-            for k in range(len(tmpMatrix) - 1, 0, -1):
-                if tmpMatrix[k] != 0:
-                    for t in range(k - 1, len(tmpMatrix), -1):
-                        if tmpMatrix[t] != 0:
-                            if tmpMatrix[k] >= tmpMatrix[t]:
-                                scoreList[2] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[t]) / math.log(2)
-                            else:
-                                scoreList[3] += math.log(tmpMatrix[k]) / math.log(2) - math.log(
-                                    tmpMatrix[t]) / math.log(2)
+        for x in range(c.ROW):
+            current = 0
+            next = current + 1
+            while (next < 4):
+                while next < 4 and matrix[x][next] == 0:
+                    next += 1
+
+                if next >= 4:
+                    next -= 1
+                if matrix[x][current] != 0:
+                    currentValue = math.log(matrix[x][current]) / math.log(2)
+                else:
+                    currentValue = 0
+
+                if matrix[x][next] != 0:
+                    nextValue = math.log(matrix[x][next]) / math.log(2)
+                else:
+                    nextValue = 0
+
+                if currentValue > nextValue:
+                    scoreList[0] += nextValue - currentValue
+                elif nextValue > currentValue:
+                    scoreList[1] += currentValue - nextValue
+                current = next
+                next += 1
+
+        for y in range(c.ROW):
+            current = 0
+            next = current + 1
+            while next < 4:
+                while next < 4 and matrix[next][y] == 0:
+                    next += 1
+                if next >= 4:
+                    next -= 1
+
+                if matrix[current][y] != 0:
+                    currentValue = math.log(matrix[current][y]) / math.log(2)
+                else:
+                    currentValue = 0
+
+                if matrix[next][y] != 0:
+                    nextValue = math.log(matrix[next][y]) / math.log(2)
+                else:
+                    nextValue = 0
+
+                if currentValue > nextValue:
+                    scoreList[2] += nextValue - currentValue
+                elif nextValue > currentValue:
+                    scoreList[3] += currentValue - nextValue
+                current = next
         return max(scoreList[0], scoreList[1]) + max(scoreList[2], scoreList[3])
 
-    @classmethod
-    def getEmptyCounts(cls, matrix):
+    def getEmptyCounts(self, matrix):
         counts = 0
         for i in range(c.ROW):
             for j in range(c.COLUMN):
@@ -185,8 +167,7 @@ class Ai:
                     counts += 1
         return counts
 
-    @classmethod
-    def getMaxValue(cls, matrix):
+    def getMaxValue(self, matrix):
         MAX = matrix[0][0]
         for i in range(c.ROW):
             for j in range(c.COLUMN):
@@ -196,22 +177,14 @@ class Ai:
 
 
 class Node:
-    def __init__(self, matrix, depth):
+    def __init__(self, matrix, depth, movement):
         self.sonNode = []
         self.depth = depth
         self.matrix = matrix
-
+        self.move = movement
         # 构造子节点
-        if self.depth <= 6:
-            self.sonNode.append(Node(self.matrix.right(), self.depth + 1))
-            self.sonNode.append(Node(self.matrix.left(), self.depth + 1))
-            self.sonNode.append(Node(self.matrix.up(), self.depth + 1))
-            self.sonNode.append(Node(self.matrix.down(), self.depth + 1))
-
-
-# Run the Code
-alphaGo = Ai()
-node, value = alphaGo.alphaBetaSearch(alphaGo.headNode, 6, True)
-if node is not None:
-    for i in range(4):
-        print(node.matrix.getMatrix()[i])
+        if self.depth <= c.nodeDepth:
+            self.sonNode.append(Node(self.matrix.right(True), self.depth + 1, "right"))
+            self.sonNode.append(Node(self.matrix.left(True), self.depth + 1, "left"))
+            self.sonNode.append(Node(self.matrix.up(True), self.depth + 1, "up"))
+            self.sonNode.append(Node(self.matrix.down(True), self.depth + 1, "down"))
