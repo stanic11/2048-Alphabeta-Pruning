@@ -28,11 +28,6 @@ Project:.
 
 ​	If you want to run this project, You should at least installed python at version 3.11 and pygame at version 2.5.2.
 
-If you have installed Git, then just run the command.
-
-```Shell
-git clone https://github.com/stanic11/2048-Alphabeta-Pruning
-```
 
 Be sure you have prepared the environment then just run ***main.py***.
 
