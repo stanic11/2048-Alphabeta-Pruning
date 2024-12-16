@@ -101,19 +101,7 @@ class game:
         pygame.init()
         screen = pygame.display.set_mode((self.printer.WIDTH, self.printer.HEIGHT))
         while True:
-            choice = random.randint(0, 3)
-            if choice == 0:
-                self.matrix.left()
-                pygame.time.delay(1000)
-            elif choice == 1:
-                self.matrix.right()
-                pygame.time.delay(1000)
-            elif choice == 2:
-                self.matrix.up()
-                pygame.time.delay(1000)
-            elif choice == 3:
-                self.matrix.down()
-                pygame.time.delay(1000)
+            # 此处调用AI有问题，放假修......
             screen.fill(pygame.Color(self.printer.BG_COLOR))
             # 显示棋盘
             self.printer.chessBoardPrint(screen, self.matrix)
