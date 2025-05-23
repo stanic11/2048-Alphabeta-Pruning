@@ -100,17 +100,41 @@ class game:
     def beginAiGame(self):
         pygame.init()
         screen = pygame.display.set_mode((self.printer.WIDTH, self.printer.HEIGHT))
+        Ai = ai.Ai(self)
+
         while True:
-            # 此处调用AI有问题，放假修......
+            # 事件处理，保持窗口响应
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+            # 游戏结束检测
+            state = self.gameState()
+            if state == 'win' or state == 'game over':
+                # 可以显示 miniWindow 或其他结束提示
+                pygame.time.wait(3000)  # 停留3秒
+                break
+
+            # 每步前刷新AI的headNode
+            Ai.headNode = ai.Node(self.matrix, 1, None)
+            move = Ai.decide()
+            if move == "up":
+                self.matrix.up()
+            elif move == "down":
+                self.matrix.down()
+            elif move == "left":
+                self.matrix.left()
+            elif move == "right":
+                self.matrix.right()
+
+            # 渲染
             screen.fill(pygame.Color(self.printer.BG_COLOR))
-            # 显示棋盘
             self.printer.chessBoardPrint(screen, self.matrix)
-            # 显示棋盘上的标签(分数、最高分)和按钮
             self.printer.buttonsPrint(screen, self.matrix.point, self.maxScore)
-            # 显示棋盘上的数字
             self.printer.numsPrint(screen, self.matrix)
-            # 刷新显示
             pygame.display.update()
+            pygame.time.wait(500)
 
 
     def readPointList(self):

@@ -1,15 +1,12 @@
 import math
 import Logic
 import constant as c
-
+import pygame
 
 class Ai:
     def __init__(self, game):
         self.GAME = game
-        self.alpha = -math.inf
-        self.beta = +math.inf
-        self.headNode = Node(self.GAME.matrix, 1, None)
-        # self.depth = 6
+        self.headNode = None  # Don't create the tree yet
         #########################
         self.smoothWeight = 0.1
         self.emptyWeight = 2.7
@@ -18,38 +15,56 @@ class Ai:
         ##########################
 
     def decide(self):
-        node, value = self.alphaBetaSearch(self.headNode, c.nodeDepth, True)
-        print("test")
+        # Reset alpha-beta values for each decision
+        self.alpha = -math.inf
+        self.beta = +math.inf
+        
+        # Create head node with initial state
+        self.headNode = Node(self.GAME.matrix, 1, None)
+        
+        # Use a reduced depth for faster processing
+        reduced_depth = 3  # Using 3 instead of 6 for better performance
+        
+        node, value = self.alphaBetaSearch(self.headNode, reduced_depth, True)
+        print("AI chose move:", node.move)
         return node.move
 
     def alphaBetaSearch(self, node, depth, minimaxPlayer):
+        # Process events occasionally to keep UI responsive
+        if depth % 2 == 0:  # Check events every other depth level
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    import sys
+                    sys.exit()
+
         if depth == 0 or self.GAME.gameState() == 'win':
             return node, self.eval(node.matrix.getMatrix())  # 返回节点和对应的值
 
         if minimaxPlayer:
             maxEval = -math.inf
-            bestChild = None  # 用于记录最大值的子节点
-            for child in node.sonNode:
+            bestChild = node  # Default to self if no better move is found
+            for child in node.getChildren():  # Use lazy child generation
                 childNode, eValue = self.alphaBetaSearch(child, depth - 1, False)
                 if eValue > maxEval:
                     maxEval = eValue
-                    bestChild = childNode  # 更新最大值的子节点
+                    bestChild = child  # Store the immediate child, not the deep one
                 self.alpha = max(self.alpha, eValue)
                 if self.alpha >= self.beta:
                     break
-            return bestChild, maxEval  # 返回最大值所对应的子节点和值
+            return bestChild, maxEval
         else:
             minEval = +math.inf
-            bestChild = None  # 用于记录最小值的子节点
-            for child in node.sonNode:
+            bestChild = node  # Default to self if no better move is found
+            for child in node.getChildren():  # Use lazy child generation
                 childNode, eValue = self.alphaBetaSearch(child, depth - 1, True)
                 if eValue < minEval:
                     minEval = eValue
-                    bestChild = childNode  # 更新最小值的子节点
+                    bestChild = child  # Store the immediate child, not the deep one
                 self.beta = min(self.beta, eValue)
                 if self.beta <= self.alpha:
                     break
-            return bestChild, minEval  # 返回最小值所对应的子节点和值
+            return bestChild, minEval
 
     def eval(self, matrix):
         emptyCounts = self.getEmptyCounts(matrix)
@@ -157,6 +172,7 @@ class Ai:
                 elif nextValue > currentValue:
                     scoreList[3] += currentValue - nextValue
                 current = next
+                next += 1
         return max(scoreList[0], scoreList[1]) + max(scoreList[2], scoreList[3])
 
     def getEmptyCounts(self, matrix):
@@ -178,13 +194,18 @@ class Ai:
 
 class Node:
     def __init__(self, matrix, depth, movement):
-        self.sonNode = []
+        self.sonNode = []  # Start with empty list, generate children on demand
         self.depth = depth
         self.matrix = matrix
         self.move = movement
-        # 构造子节点
-        if self.depth <= c.nodeDepth:
+        self._children_generated = False
+
+    def getChildren(self):
+        # Lazy generation of children only when needed
+        if not self._children_generated and self.depth <= 3:  # Reduced depth
             self.sonNode.append(Node(self.matrix.right(True), self.depth + 1, "right"))
             self.sonNode.append(Node(self.matrix.left(True), self.depth + 1, "left"))
             self.sonNode.append(Node(self.matrix.up(True), self.depth + 1, "up"))
             self.sonNode.append(Node(self.matrix.down(True), self.depth + 1, "down"))
+            self._children_generated = True
+        return self.sonNode
